@@ -28,7 +28,9 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
-      onClose={onClose}
+      // NOTE: no onClose here — the native "close" event also fires when we close the
+      // dialog programmatically (e.g. to show a confirm step), which must not reset parent state.
+      // Escape key is handled by onCancel; the ✕ button calls onClose directly.
       onCancel={(e) => {
         e.preventDefault();
         onClose();
