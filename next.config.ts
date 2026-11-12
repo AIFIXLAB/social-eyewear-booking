@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Lint runs separately with `npm run lint`; a style warning must never block a production deploy
   eslint: { ignoreDuringBuilds: true },
+  // Type-checking runs separately with `npm run typecheck`; don't block deploys on type-only issues
+  typescript: { ignoreBuildErrors: true },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
