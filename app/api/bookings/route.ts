@@ -1,5 +1,6 @@
 import { json, fail, readJson, rateLimit, clientIp, sameOrigin } from "@/lib/http";
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { createSupabaseAnonClient } from "@/lib/supabase/service";
+import { BOOKING_SERVER_TOKEN } from "@/lib/booking/serverToken.server";
 import { validateBookingRequest } from "@/lib/validation/booking";
 import { verifyLineIdToken } from "@/lib/line/verify";
 import type { Booking, PublicBookingResult } from "@/types";
@@ -63,12 +64,12 @@ export async function POST(req: Request) {
 
   let supabase;
   try {
-    supabase = createSupabaseServiceClient();
+    supabase = createSupabaseAnonClient();
   } catch {
     return fail("SERVER_NOT_CONFIGURED", 503);
   }
 
-  const { data, error } = await supabase.rpc("create_booking", {
+  const { data, error } = await supabase.rpc("create_booking_public", {
     p_booking_date: input.date,
     p_start_time: input.startTime,
     p_username: input.username,
@@ -78,11 +79,12 @@ export async function POST(req: Request) {
     p_line_user_id: lineUserId,
     p_line_display_name: lineDisplayName,
     p_idempotency_key: input.idempotencyKey,
+    p_server_token: BOOKING_SERVER_TOKEN,
   });
 
   if (error || !data) {
     console.error("create_booking failed", error?.message);
-    return fail("SERVER_ERROR", 500);
+    return fail("SERVER_ERROR", 500, { detail: error?.message?.slice(0, 200) });
   }
 
   const result = data as { ok: boolean; code: string; booking?: Booking };

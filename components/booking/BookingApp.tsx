@@ -83,7 +83,7 @@ export function BookingApp() {
   const [consent, setConsent] = useState(false);
   const [idemKey, setIdemKey] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<{ code: string; uncertain: boolean } | null>(null);
+  const [submitError, setSubmitError] = useState<{ code: string; uncertain: boolean; detail?: string } | null>(null);
   const [useLine, setUseLine] = useState(true);
   const [result, setResult] = useState<PublicBookingResult | null>(null);
   const [restoredPending, setRestoredPending] = useState(false);
@@ -258,7 +258,7 @@ export function BookingApp() {
           website: values.website,
         }),
       });
-      let data: { ok?: boolean; code?: string; booking?: PublicBookingResult } = {};
+      let data: { ok?: boolean; code?: string; detail?: string; booking?: PublicBookingResult } = {};
       try {
         data = await res.json();
       } catch {
@@ -290,7 +290,7 @@ export function BookingApp() {
         return;
       }
       if (res.status >= 500 || code === "RATE_LIMITED") {
-        setSubmitError({ code, uncertain: res.status >= 500 }); // safe to retry with same key
+        setSubmitError({ code, uncertain: res.status >= 500, detail: data.detail }); // safe to retry with same key
         return;
       }
       // other definitive errors: allow editing
@@ -427,6 +427,7 @@ export function BookingApp() {
             <div className="mt-4 space-y-2">
               <Alert kind="error">
                 {errorMessage(submitError.code)}
+                {submitError.detail && <span className="mt-1 block font-mono text-[11px] opacity-70">({submitError.detail})</span>}
                 {submitError.uncertain && (
                   <span className="mt-1 block text-xs">หากไม่แน่ใจว่าจองสำเร็จหรือไม่ กด &quot;ลองอีกครั้ง&quot; ได้อย่างปลอดภัย ระบบจะไม่จองซ้ำ</span>
                 )}

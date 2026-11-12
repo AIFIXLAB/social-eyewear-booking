@@ -11,7 +11,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const [, , email, password] = process.argv;
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jjjotlpmeqazdacjbkmt.supabase.co";
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "sb_secret_rhgVOL0bh4MAotc78sG50w_PJRiw9hi";
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!url || !key) {
   console.error("✗ Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (e.g. node --env-file=.env.local ...)");

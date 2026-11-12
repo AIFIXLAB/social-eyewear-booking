@@ -2,7 +2,6 @@ import { withAdmin, sanitizeSearch } from "@/lib/auth/withAdmin";
 import { json, fail, readJson } from "@/lib/http";
 import { isYm, isYmd, monthRange } from "@/lib/booking/dates";
 import { SERVICE_VALUES, STATUS_VALUES, validateBookingRequest } from "@/lib/validation/booking";
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +58,7 @@ export const GET = withAdmin(async (req, { supabase }) => {
  * POST /api/admin/bookings — admin adds a booking on behalf of a customer
  * (phone / walk-in). Goes through the same atomic create_booking().
  */
-export const POST = withAdmin(async (req) => {
+export const POST = withAdmin(async (req, { supabase }) => {
   let body: unknown;
   try {
     body = await readJson(req);
@@ -69,7 +68,7 @@ export const POST = withAdmin(async (req) => {
   const v = validateBookingRequest({ ...(body as object), consent: true, lineIdToken: null, website: "" });
   if (!v.ok) return fail("INVALID_INPUT", 422, { errors: v.errors });
   const i = v.value;
-  const { data, error } = await createSupabaseServiceClient().rpc("create_booking", {
+  const { data, error } = await supabase.rpc("create_booking_public", {
     p_booking_date: i.date,
     p_start_time: i.startTime,
     p_username: i.username,
@@ -79,6 +78,7 @@ export const POST = withAdmin(async (req) => {
     p_line_user_id: null,
     p_line_display_name: null,
     p_idempotency_key: i.idempotencyKey,
+    p_server_token: null,
   });
   if (error || !data) return fail("SERVER_ERROR", 500);
   const r = data as { ok: boolean; code: string; booking?: unknown };
