@@ -58,6 +58,7 @@ export interface PublicBookingResult {
   phone: string;
   serviceType: ServiceType;
   serviceDetail: string | null;
+  lineNotified?: boolean;
 }
 
 export interface Holiday {
@@ -82,4 +83,5 @@ export interface PublicSettings {
   min_lead_minutes?: number;
   announcement?: string;
   shop_phone?: string;
+  liff_id?: string;
 }

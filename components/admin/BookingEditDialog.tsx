@@ -106,7 +106,9 @@ export function BookingEditDialog({
       setServerError(errorMessage(r.code));
       return;
     }
-    toast.success(isCreate ? "เพิ่มการจองแล้ว" : status === "cancelled" && booking?.booking_status !== "cancelled" ? "ยกเลิกการจองแล้ว รอบนี้กลับมาว่าง" : "บันทึกแล้ว");
+    const ln = (r.data as { lineNotified?: boolean | null }).lineNotified;
+    const lineNote = ln === true ? " · แจ้งลูกค้าทาง LINE แล้ว" : ln === false ? " · ส่ง LINE ไม่สำเร็จ กรุณาแจ้งลูกค้าเอง" : "";
+    toast.success((isCreate ? "เพิ่มการจองแล้ว" : status === "cancelled" && booking?.booking_status !== "cancelled" ? "ยกเลิกการจองแล้ว รอบนี้กลับมาว่าง" : "บันทึกแล้ว") + lineNote);
     setConfirmCancel(false);
     onSaved();
     onClose();

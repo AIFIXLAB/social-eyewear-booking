@@ -66,12 +66,12 @@ const emptyForm: FormValues = { username: "", phone: "", serviceType: "", servic
 
 export function BookingApp() {
   const toast = useToast();
-  const { state: liff, getIdToken, relogin } = useLiff();
+  const [settings, setSettings] = useState<PublicSettings>({});
+  const { state: liff, getIdToken, relogin } = useLiff(settings.liff_id || undefined);
 
   const [today, setToday] = useState(() => bangkokToday());
   const [month, setMonth] = useState(() => monthOf(bangkokToday()));
   const [days, setDays] = useState<Record<string, DayWithSummary>>({});
-  const [settings, setSettings] = useState<PublicSettings>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -258,7 +258,7 @@ export function BookingApp() {
           website: values.website,
         }),
       });
-      let data: { ok?: boolean; code?: string; detail?: string; booking?: PublicBookingResult } = {};
+      let data: { ok?: boolean; code?: string; detail?: string; lineNotified?: boolean; booking?: PublicBookingResult } = {};
       try {
         data = await res.json();
       } catch {
@@ -267,8 +267,9 @@ export function BookingApp() {
 
       if (res.ok && data.ok && data.booking) {
         ss.del(PENDING_KEY);
-        ss.set(SUCCESS_KEY, data.booking);
-        setResult(data.booking);
+        const done = { ...data.booking, lineNotified: !!data.lineNotified };
+        ss.set(SUCCESS_KEY, done);
+        setResult(done);
         setStep("success");
         scrollTop();
         return;
@@ -481,7 +482,11 @@ export function BookingApp() {
               ✓
             </div>
             <h2 className="text-2xl font-bold text-brand-800">จองคิวสำเร็จ!</h2>
-            <p className="mt-1 text-sm text-neutral-500">กรุณาบันทึกภาพหน้าจอนี้ไว้ และมาถึงร้านก่อนเวลานัดเล็กน้อย</p>
+            <p className="mt-1 text-sm text-neutral-500">
+              {result.lineNotified
+                ? "ส่งรายละเอียดการจองไปที่แชท LINE ของคุณแล้ว และจะแจ้งเตือนอีกครั้งก่อนวันนัด 1 วัน"
+                : "กรุณาบันทึกภาพหน้าจอนี้ไว้ และมาถึงร้านก่อนเวลานัดเล็กน้อย"}
+            </p>
           </div>
           <BookingSummary
             bookingCode={result.bookingCode}

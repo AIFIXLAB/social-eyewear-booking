@@ -1,4 +1,5 @@
 import "server-only";
+import { getLineConfig } from "./config.server";
 
 export interface VerifiedLineUser {
   userId: string; // "U" + 32 hex
@@ -16,7 +17,7 @@ export type LineVerifyResult =
  * Docs: https://developers.line.biz/en/reference/line-login/#verify-id-token
  */
 export async function verifyLineIdToken(idToken: string): Promise<LineVerifyResult> {
-  const channelId = process.env.LINE_CHANNEL_ID;
+  const channelId = (await getLineConfig()).channelId;
   if (!channelId) return { ok: false, reason: "NOT_CONFIGURED" };
 
   let res: Response;

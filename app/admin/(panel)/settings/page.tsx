@@ -20,6 +20,12 @@ const FIELDS: { key: string; label: string; type: "number" | "text"; help?: stri
   { key: "announcement", label: "ข้อความประกาศบนหน้าจอง", type: "text", help: "เว้นว่างเพื่อซ่อน" },
 ];
 
+const LINE_FIELDS: { key: string; label: string; help: string; placeholder: string }[] = [
+  { key: "liff_id", label: "LIFF ID", placeholder: "2001234567-AbCdEfGh", help: "LINE Developers → LINE Login channel → แท็บ LIFF" },
+  { key: "line_login_channel_id", label: "LINE Login Channel ID", placeholder: "2001234567", help: "LINE Developers → LINE Login channel → Basic settings → Channel ID" },
+  { key: "line_channel_access_token", label: "Messaging API Channel access token", placeholder: "วาง token ยาว ๆ ที่นี่", help: "LINE Developers → Messaging API channel → แท็บ Messaging API → Channel access token (long-lived) → Issue" },
+];
+
 const ADMIN_ERRORS: Record<string, string> = {
   CANNOT_REMOVE_SELF: "ไม่สามารถลบสิทธิ์ของบัญชีตัวเองได้",
   LAST_ADMIN: "ต้องมีผู้ดูแลอย่างน้อย 1 บัญชี",
@@ -61,6 +67,7 @@ export default function SettingsPage() {
     e.preventDefault();
     const body: Record<string, unknown> = {};
     for (const f of FIELDS) body[f.key] = f.type === "number" ? Number(values[f.key]) : values[f.key] ?? "";
+    for (const f of LINE_FIELDS) if (values[f.key] !== undefined) body[f.key] = (values[f.key] ?? "").trim();
     setSaving(true);
     const r = await api("/api/admin/settings", { method: "PATCH", body });
     setSaving(false);
@@ -115,6 +122,27 @@ export default function SettingsPage() {
               onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
             />
             {f.help && <p className="mt-1 text-xs text-neutral-500">{f.help}</p>}
+          </div>
+        ))}
+        <div className="border-t border-neutral-100 pt-4">
+          <h2 className="font-semibold">LINE (ดึงชื่อลูกค้า + ส่งข้อความยืนยัน/เตือนนัด)</h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            ลูกค้าที่จองผ่าน LINE จะได้ข้อความยืนยันทันที และข้อความเตือนก่อนวันนัด 1 วัน (ส่งเวลา 18:00 น.)
+            ร้านยกเลิกหรือเลื่อนนัด ระบบแจ้งลูกค้าทาง LINE ให้อัตโนมัติ
+          </p>
+        </div>
+        {LINE_FIELDS.map((f) => (
+          <div key={f.key}>
+            <label className="label" htmlFor={f.key}>{f.label}</label>
+            <input
+              id={f.key}
+              className="input font-mono text-sm"
+              autoComplete="off"
+              placeholder={f.placeholder}
+              value={values[f.key] ?? ""}
+              onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+            />
+            <p className="mt-1 text-xs text-neutral-500">{f.help}</p>
           </div>
         ))}
         <Button type="submit" loading={saving}>บันทึกการตั้งค่า</Button>

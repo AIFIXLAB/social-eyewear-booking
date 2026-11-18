@@ -3,6 +3,8 @@ import { createSupabaseAnonClient } from "@/lib/supabase/service";
 import { BOOKING_SERVER_TOKEN } from "@/lib/booking/serverToken.server";
 import { validateBookingRequest } from "@/lib/validation/booking";
 import { verifyLineIdToken } from "@/lib/line/verify";
+import { pushLine } from "@/lib/line/push";
+import { bookingConfirmedMessage } from "@/lib/line/messages";
 import type { Booking, PublicBookingResult } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -102,5 +104,16 @@ export async function POST(req: Request) {
     serviceType: b.service_type,
     serviceDetail: b.service_detail,
   };
-  return json({ ok: true, code: result.code, booking: publicResult }, status);
+  // LINE confirmation (only for new bookings made through LINE; never blocks the booking)
+  let lineNotified = false;
+  if (result.code === "CREATED" && b.line_user_id) {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin;
+    const r = await pushLine(
+      b.line_user_id,
+      [bookingConfirmedMessage({ bookingCode: b.booking_code, date: b.booking_date, start: publicResult.start, end: publicResult.end, username: b.username, serviceType: b.service_type }, siteUrl)],
+      input.idempotencyKey,
+    );
+    lineNotified = r.ok;
+  }
+  return json({ ok: true, code: result.code, booking: publicResult, lineNotified }, status);
 }

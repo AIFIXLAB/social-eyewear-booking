@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { DEFAULT_LIFF_ID } from "./defaults";
 
 export type LiffState =
   | { status: "off" } // normal browser / LIFF not configured — booking works normally
@@ -24,13 +25,13 @@ function looksLikeLiffContext(): boolean {
  * - The browser NEVER sends userId/displayName to our API — only the ID
  *   token, which the server verifies with LINE.
  */
-export function useLiff() {
+export function useLiff(liffIdFromSettings?: string) {
   const [state, setState] = useState<LiffState>({ status: "off" });
   const liffRef = useRef<Liff | null>(null);
 
   useEffect(() => {
-    const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-    if (!liffId || !looksLikeLiffContext()) return;
+    const liffId = process.env.NEXT_PUBLIC_LIFF_ID || liffIdFromSettings || DEFAULT_LIFF_ID;
+    if (!liffId || !looksLikeLiffContext() || liffRef.current) return;
     let cancelled = false;
     setState({ status: "loading" });
 
@@ -64,7 +65,7 @@ export function useLiff() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [liffIdFromSettings]);
 
   /** Fresh ID token for the server to verify (null if not available) */
   const getIdToken = useCallback((): string | null => {
