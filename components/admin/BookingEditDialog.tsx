@@ -41,11 +41,22 @@ export function BookingEditDialog({
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [lineResult, setLineResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [lineSending, setLineSending] = useState(false);
+
+  async function resendLine() {
+    if (!booking) return;
+    setLineSending(true);
+    const r = await api<{ ok: boolean; message: string }>(`/api/admin/bookings/${booking.id}/line`, { method: "POST" });
+    setLineSending(false);
+    setLineResult({ ok: !!r.data.ok, message: r.data.message ?? errorMessage(r.code) });
+  }
 
   useEffect(() => {
     if (!open) return;
     setErrors({});
     setServerError(null);
+    setLineResult(null);
     if (booking) {
       setF({
         date: booking.booking_date, start: hm(booking.start_time), username: booking.username, phone: booking.phone_number,
@@ -150,6 +161,20 @@ export function BookingEditDialog({
                     : ""
                 : " · จองผ่านเว็บ (ไม่ได้รับข้อความ LINE)"}
             </p>
+          )}
+          {!isCreate && booking!.line_user_id && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl bg-[#06C755]/5 px-3 py-2">
+              <span className="text-sm text-neutral-700">LINE: {booking!.line_display_name ?? "ลูกค้า"}</span>
+              <Button size="sm" variant="secondary" loading={lineSending} onClick={resendLine}>
+                ส่งข้อความยืนยันทาง LINE อีกครั้ง
+              </Button>
+              {lineResult && (
+                <span className={`w-full text-sm ${lineResult.ok ? "text-brand-700" : "text-red-600"}`}>
+                  {lineResult.ok ? "✓ " : "✗ "}
+                  {lineResult.message}
+                </span>
+              )}
+            </div>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>

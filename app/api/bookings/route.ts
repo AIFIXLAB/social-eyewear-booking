@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     } else if (r.reason === "INVALID") {
       return fail("LINE_TOKEN_INVALID", 401);
     }
-    // NOT_CONFIGURED / UNREACHABLE: continue as a normal web booking
+    else console.warn("LINE ID token not verified:", r.reason); // NOT_CONFIGURED / UNREACHABLE: continue as web booking
   }
 
   let supabase;

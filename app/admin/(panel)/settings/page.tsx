@@ -42,6 +42,16 @@ export default function SettingsPage() {
   const [newPass, setNewPass] = useState("");
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<AdminRow | null>(null);
+  const [lineCheck, setLineCheck] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  async function checkLine() {
+    setChecking(true);
+    const r = await api<{ ok: boolean; token: { ok: boolean; botName?: string; basicId?: string; message?: string } }>("/api/admin/line-check");
+    setChecking(false);
+    const t = r.data.token;
+    setLineCheck(t?.ok ? `✓ เชื่อมต่อ LINE OA "${t.botName}" (${t.basicId}) สำเร็จ ระบบส่งข้อความได้` : `✗ ${t?.message ?? errorMessage(r.code)}`);
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -145,7 +155,11 @@ export default function SettingsPage() {
             <p className="mt-1 text-xs text-neutral-500">{f.help}</p>
           </div>
         ))}
-        <Button type="submit" loading={saving}>บันทึกการตั้งค่า</Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="submit" loading={saving}>บันทึกการตั้งค่า</Button>
+          <Button type="button" variant="secondary" loading={checking} onClick={checkLine}>ทดสอบการเชื่อมต่อ LINE</Button>
+        </div>
+        {lineCheck && <p className={`text-sm ${lineCheck.startsWith("✓") ? "text-brand-700" : "text-red-600"}`}>{lineCheck}</p>}
       </form>
 
       <section className="card mt-6 p-5">
