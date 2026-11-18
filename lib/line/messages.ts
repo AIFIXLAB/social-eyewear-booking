@@ -112,7 +112,7 @@ export function bookingCancelledMessage(b: LineBookingInfo) {
     text:
       `แจ้งยกเลิกนัด ${b.bookingCode}\n` +
       `${formatThaiDate(b.date)} เวลา ${b.start}–${b.end} น.\n` +
-      `หากต้องการจองใหม่ กดปุ่ม "จองคิว" ที่เมนูด้านล่างได้เลยค่ะ`,
+      `หากต้องการจองใหม่ กดปุ่ม "Book" ที่เมนูด้านล่างได้เลยค่ะ`,
   };
 }
 

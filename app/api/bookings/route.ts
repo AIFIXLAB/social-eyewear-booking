@@ -4,6 +4,7 @@ import { BOOKING_SERVER_TOKEN } from "@/lib/booking/serverToken.server";
 import { validateBookingRequest } from "@/lib/validation/booking";
 import { verifyLineIdToken } from "@/lib/line/verify";
 import { pushLine } from "@/lib/line/push";
+import { getLineConfig } from "@/lib/line/config.server";
 import { bookingConfirmedMessage } from "@/lib/line/messages";
 import type { Booking, PublicBookingResult } from "@/types";
 
@@ -107,7 +108,8 @@ export async function POST(req: Request) {
   // LINE confirmation (only for new bookings made through LINE; never blocks the booking)
   let lineNotified = false;
   if (result.code === "CREATED" && b.line_user_id) {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin;
+    // "จองคิวเพิ่ม" opens the LIFF link so the customer stays inside LINE
+    const siteUrl = `https://liff.line.me/${(await getLineConfig()).liffId}`;
     const r = await pushLine(
       b.line_user_id,
       [bookingConfirmedMessage({ bookingCode: b.booking_code, date: b.booking_date, start: publicResult.start, end: publicResult.end, username: b.username, serviceType: b.service_type }, siteUrl)],
