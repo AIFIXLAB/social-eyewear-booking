@@ -156,7 +156,7 @@ export function BookingApp() {
 
   // prefill username from LINE (only if the customer hasn't typed one)
   useEffect(() => {
-    if (liff.status === "ready") setValues((v) => (v.username ? v : { ...v, username: liff.displayName }));
+    if (liff.status === "ready" && liff.displayName) setValues((v) => (v.username ? v : { ...v, username: liff.displayName }));
   }, [liff]);
 
   const summaries = useMemo(() => {
@@ -524,7 +524,7 @@ export function BookingApp() {
       )}
 
       <footer className="mt-10 text-center text-xs text-neutral-400">
-        <Link href="/privacy" className="underline">นโยบายความเป็นส่วนตัว</Link> · © Social Eyewear · v1.3
+        <Link href="/privacy" className="underline">นโยบายความเป็นส่วนตัว</Link> · © Social Eyewear · v1.4
       </footer>
     </div>
   );

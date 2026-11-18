@@ -29,6 +29,7 @@ type InitResult =
   | { status: "error"; reason: string };
 
 let initPromise: Promise<InitResult> | null = null;
+const RELOGIN_KEY = "se-liff-relogin";
 
 function initOnce(liffId: string): Promise<InitResult> {
   if (initPromise) return initPromise;
@@ -57,8 +58,27 @@ function initOnce(liffId: string): Promise<InitResult> {
     }
     try {
       const p = await liff.getProfile();
+      try { sessionStorage.removeItem(RELOGIN_KEY); } catch { /* ignore */ }
       return { status: "ready", liff, displayName: p.displayName, pictureUrl: p.pictureUrl };
     } catch (e) {
+      // The user consented earlier, before "profile" was added to the LIFF scopes.
+      // Ask LINE for consent again — once per session, to avoid a redirect loop.
+      let tried = false;
+      try { tried = sessionStorage.getItem(RELOGIN_KEY) === "1"; } catch { /* ignore */ }
+      if (!tried && /permission|scope/i.test(String(e))) {
+        try { sessionStorage.setItem(RELOGIN_KEY, "1"); } catch { /* ignore */ }
+        liff.logout();
+        liff.login({ redirectUri: window.location.href });
+        return { status: "redirecting" };
+      }
+      // Still no profile: the ID token (scope "openid") is enough to identify the
+      // customer and send LINE messages; use its name claim if present.
+      try {
+        const decoded = liff.getDecodedIDToken();
+        if (liff.getIDToken() && decoded?.sub) {
+          return { status: "ready", liff, displayName: (decoded.name as string | undefined) ?? "", pictureUrl: decoded.picture as string | undefined };
+        }
+      } catch { /* fall through */ }
       return { status: "error", reason: `PROFILE: ${String(e).slice(0, 120)}` };
     }
   })();

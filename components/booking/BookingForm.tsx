@@ -32,7 +32,7 @@ export function BookingForm({
         {fromLine && (
           <p className="mb-2 flex items-center gap-2 text-xs text-brand-700">
             <span className="inline-flex h-5 items-center rounded-full bg-[#06C755] px-2 text-[11px] font-semibold text-white">LINE</span>
-            ใช้ชื่อจากบัญชี LINE ของคุณ (แก้ไขได้)
+            {liff.displayName ? "ใช้ชื่อจากบัญชี LINE ของคุณ (แก้ไขได้)" : "เชื่อมบัญชี LINE แล้ว — จะได้รับข้อความยืนยันทาง LINE"}
           </p>
         )}
         {liff.status === "loading" && <p className="mb-2 text-xs text-neutral-500">กำลังดึงชื่อจาก LINE...</p>}
