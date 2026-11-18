@@ -156,7 +156,16 @@ export function BookingsManager() {
                     <td className="table-td tabular-nums">{formatPhone(b.phone_number)}</td>
                     <td className="table-td">{SERVICE_LABEL[b.service_type]}</td>
                     <td className="table-td max-w-[180px] truncate text-neutral-500" title={b.service_detail ?? ""}>{b.service_detail ?? "–"}</td>
-                    <td className="table-td max-w-[120px] truncate text-neutral-500">{b.line_display_name ?? "–"}</td>
+                    <td className="table-td max-w-[160px] text-neutral-500">
+                      {b.line_user_id ? (
+                        <>
+                          <span className="block truncate">{b.line_display_name ?? "LINE"}</span>
+                          <LineBadge b={b} />
+                        </>
+                      ) : (
+                        "–"
+                      )}
+                    </td>
                     <td className="table-td"><StatusBadge status={b.booking_status} /></td>
                     <td className="table-td text-xs text-neutral-500">{formatThaiDateTime(b.created_at)}</td>
                   </tr>
@@ -182,6 +191,7 @@ export function BookingsManager() {
                   </p>
                   <p className="text-sm text-neutral-500">{SERVICE_LABEL[b.service_type]}{b.service_detail ? ` · ${b.service_detail}` : ""}</p>
                   <p className="mt-1 font-mono text-xs text-neutral-400">{b.booking_code}{b.line_display_name ? ` · LINE: ${b.line_display_name}` : ""}</p>
+                  {b.line_user_id && <LineBadge b={b} />}
                 </button>
               </li>
             ))}
@@ -200,5 +210,22 @@ export function BookingsManager() {
       <BookingEditDialog open={!!editing} booking={editing} onClose={() => setEditing(null)} onSaved={load} />
       <BookingEditDialog open={creating} booking={null} onClose={() => setCreating(false)} onSaved={load} />
     </div>
+  );
+}
+
+/** LINE notification status: has the day-before reminder gone out? */
+export function LineBadge({ b }: { b: Booking }) {
+  if (!b.line_user_id) return null;
+  if (b.reminder_sent_at)
+    return (
+      <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#06C755]/10 px-2 py-0.5 text-[11px] font-semibold text-[#048a3c]">
+        🔔 เตือนนัดแล้ว {formatThaiDateTime(b.reminder_sent_at)}
+      </span>
+    );
+  if (b.booking_status !== "confirmed") return null;
+  return (
+    <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-500">
+      ⏳ จะเตือนเย็นวันก่อนนัด
+    </span>
   );
 }

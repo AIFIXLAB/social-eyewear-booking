@@ -136,6 +136,11 @@ export function DayManager({ date, onChanged }: { date: string; onChanged?: () =
                     <span className="font-semibold">{s.booking.username}</span>
                     <span className="text-sm tabular-nums text-neutral-600">{formatPhone(s.booking.phone_number)}</span>
                     <StatusBadge status={s.booking.booking_status} />
+                    {s.booking.line_user_id && (
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${s.booking.reminder_sent_at ? "bg-[#06C755]/10 text-[#048a3c]" : "bg-neutral-100 text-neutral-500"}`}>
+                        LINE {s.booking.reminder_sent_at ? "· เตือนแล้ว 🔔" : ""}
+                      </span>
+                    )}
                     {s.closed && <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs text-red-600">รอบถูกปิด</span>}
                   </div>
                   <p className="truncate text-sm text-neutral-500">

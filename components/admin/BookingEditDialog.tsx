@@ -142,6 +142,13 @@ export function BookingEditDialog({
             <p className="text-xs text-neutral-500">
               สร้างเมื่อ {formatThaiDateTime(booking!.created_at)} · แก้ไขล่าสุด {formatThaiDateTime(booking!.updated_at)}
               {booking!.line_display_name ? ` · LINE: ${booking!.line_display_name}` : ""}
+              {booking!.line_user_id
+                ? booking!.reminder_sent_at
+                  ? ` · 🔔 เตือนนัดทาง LINE แล้ว ${formatThaiDateTime(booking!.reminder_sent_at)}`
+                  : booking!.booking_status === "confirmed"
+                    ? " · ⏳ จะส่งเตือนทาง LINE เย็นวันก่อนนัด"
+                    : ""
+                : " · จองผ่านเว็บ (ไม่ได้รับข้อความ LINE)"}
             </p>
           )}
           <div className="grid gap-4 sm:grid-cols-2">

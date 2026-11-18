@@ -44,6 +44,7 @@ export interface Booking {
   booking_status: BookingStatus;
   admin_note: string | null;
   cancelled_at: string | null;
+  reminder_sent_at?: string | null;
   created_at: string;
   updated_at: string;
 }
