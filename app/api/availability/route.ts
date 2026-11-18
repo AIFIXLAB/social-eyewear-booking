@@ -39,13 +39,14 @@ export async function GET(req: Request) {
   }
 
   const days = groupAvailability(avail.data ?? []);
+  const today = bangkokToday();
   return json({
     ok: true,
-    today: bangkokToday(),
+    today,
     from,
     to,
     settings: settings.data ?? {},
-    days: days.map((d) => ({ ...d, summary: summarizeDay(d) })),
+    days: days.map((d) => ({ ...d, summary: summarizeDay(d, today) })),
     fetchedAt: new Date().toISOString(),
   });
 }

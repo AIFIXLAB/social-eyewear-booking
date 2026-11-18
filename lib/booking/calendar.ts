@@ -34,7 +34,7 @@ export function groupAvailability(rows: AvailabilityRow[]): DayAvailability[] {
  *  partial      – some slots booked, some free
  *  available    – free slots, nothing booked yet
  */
-export function summarizeDay(day: DayAvailability): DaySummary {
+export function summarizeDay(day: DayAvailability, today?: string): DaySummary {
   const count = (s: SlotStatus) => day.slots.filter((x: SlotAvailability) => x.status === s).length;
   const available = count("available");
   const booked = count("booked");
@@ -42,6 +42,8 @@ export function summarizeDay(day: DayAvailability): DaySummary {
   const base = { date: day.date, available, booked, closed, holidayNote: day.holidayNote };
 
   if (day.slots.length > 0 && day.slots.every((s) => s.status === "holiday")) return { ...base, status: "holiday" };
+  // days before today can never be booked → always shown as unavailable (even if they had bookings)
+  if (today && day.date < today) return { ...base, status: "unavailable" };
   if (available > 0) return { ...base, status: booked > 0 ? "partial" : "available" };
 
   const pastOrOut = day.slots.filter((s) => s.status === "past" || s.status === "out_of_range").length;

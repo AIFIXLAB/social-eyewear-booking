@@ -41,6 +41,10 @@ test("day status: available / partial / full / holiday / closed / unavailable", 
 
   assert.equal(summarizeDay(day("2026-11-20", all("closed"))).status, "closed");
   assert.equal(summarizeDay(day("2026-11-01", all("past"))).status, "unavailable");
+  // past day that had a booking: not "full", just unavailable
+  assert.equal(summarizeDay(day("2026-11-13", ["booked", ...Array(8).fill("past")]), "2026-11-18").status, "unavailable");
+  // today, morning passed, rest booked → still "full"
+  assert.equal(summarizeDay(day("2026-11-18", [...Array(5).fill("past"), ...Array(4).fill("booked")]), "2026-11-18").status, "full");
   assert.equal(summarizeDay(day("2027-06-01", all("out_of_range"))).status, "unavailable");
   // today: morning passed, rest booked → full
   assert.equal(summarizeDay(day("2026-11-12", [...Array(5).fill("past"), ...Array(4).fill("booked")])).status, "full");
