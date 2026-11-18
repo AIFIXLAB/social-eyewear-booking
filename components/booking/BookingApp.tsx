@@ -272,7 +272,11 @@ export function BookingApp() {
       if (res.ok && data.ok && data.booking) {
         ss.del(PENDING_KEY);
         const lineInfo =
-          liff.status === "error" ? `LIFF ${liff.reason}` : liff.status === "ready" ? data.lineInfo : looksLikeLine() ? `LIFF ${liff.status}` : "";
+          liff.status === "error"
+            ? `LIFF ${liff.reason}`
+            : liff.status === "ready"
+              ? data.lineInfo
+              : `LIFF ${liff.status}${looksLikeLine() ? " (in LINE)" : " (not in LINE)"}`;
         const done = { ...data.booking, lineNotified: !!data.lineNotified, lineInfo };
         ss.set(SUCCESS_KEY, done);
         setResult(done);
@@ -520,7 +524,7 @@ export function BookingApp() {
       )}
 
       <footer className="mt-10 text-center text-xs text-neutral-400">
-        <Link href="/privacy" className="underline">นโยบายความเป็นส่วนตัว</Link> · © Social Eyewear
+        <Link href="/privacy" className="underline">นโยบายความเป็นส่วนตัว</Link> · © Social Eyewear · v1.3
       </footer>
     </div>
   );

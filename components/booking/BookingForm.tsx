@@ -36,6 +36,7 @@ export function BookingForm({
           </p>
         )}
         {liff.status === "loading" && <p className="mb-2 text-xs text-neutral-500">กำลังดึงชื่อจาก LINE...</p>}
+        {liff.status === "off" && <p className="mb-2 font-mono text-[10px] text-neutral-300">LINE: off</p>}
         {liff.status === "error" && (
           <p className="mb-2 text-xs text-amber-700">
             {liff.message}

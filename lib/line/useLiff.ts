@@ -78,7 +78,10 @@ export function useLiff(liffIdFromSettings?: string) {
   const liffId = process.env.NEXT_PUBLIC_LIFF_ID || DEFAULT_LIFF_ID || liffIdFromSettings;
 
   useEffect(() => {
-    if (!liffId || !looksLikeLiffContext()) return;
+    // Always try LIFF when configured: liff.init() is harmless in a normal browser
+    // (isLoggedIn() is false there → we fall back to web booking), and it avoids
+    // guessing the LINE in-app browser from the user agent.
+    if (!liffId) return;
     let alive = true;
     setState({ status: "loading" });
     initOnce(liffId).then((r) => {
@@ -86,6 +89,9 @@ export function useLiff(liffIdFromSettings?: string) {
       if (r.status === "ready") {
         liffInstance = r.liff;
         setState({ status: "ready", displayName: r.displayName, pictureUrl: r.pictureUrl });
+      } else if (r.status === "error" && !looksLikeLiffContext()) {
+        console.warn("LIFF not available in this browser", r.reason);
+        setState({ status: "off" }); // normal web visitor: no warning needed
       } else if (r.status === "error") {
         console.warn("LIFF failed", r.reason);
         setState({ status: "error", reason: r.reason, message: "เชื่อมต่อ LINE ไม่สำเร็จ ยังจองได้โดยกรอกชื่อเอง" });
