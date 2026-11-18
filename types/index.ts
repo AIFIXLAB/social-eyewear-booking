@@ -60,6 +60,7 @@ export interface PublicBookingResult {
   serviceType: ServiceType;
   serviceDetail: string | null;
   lineNotified?: boolean;
+  lineInfo?: string;
 }
 
 export interface Holiday {

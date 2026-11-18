@@ -1,12 +1,12 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DEFAULT_LIFF_ID } from "./defaults";
 
 export type LiffState =
-  | { status: "off" } // normal browser / LIFF not configured — booking works normally
+  | { status: "off" } // normal browser — booking works normally
   | { status: "loading" }
   | { status: "ready"; displayName: string; pictureUrl?: string }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; reason: string };
 
 type Liff = typeof import("@line/liff").default;
 
@@ -14,70 +14,102 @@ function looksLikeLiffContext(): boolean {
   if (typeof window === "undefined") return false;
   const ua = navigator.userAgent || "";
   const q = window.location.search + window.location.hash;
-  return /\bLine\//i.test(ua) || /liff\.state|liffClientId|liffRedirectUri/.test(q);
+  return /\bLine\//i.test(ua) || /liff\.state|liffClientId|liffRedirectUri|access_token|code=/.test(q);
 }
 
 /**
- * LINE LIFF integration.
- * - Only loads the SDK when opened from LINE (or returning from LINE login),
- *   so normal browsers are never slowed down or blocked.
- * - Any failure falls back to normal web booking (status "off"/"error").
- * - The browser NEVER sends userId/displayName to our API — only the ID
- *   token, which the server verifies with LINE.
+ * ONE LIFF initialisation per page load (module-level), so React re-renders,
+ * StrictMode double effects or late-loading settings can never start a second,
+ * conflicting liff.init().
+ */
+type InitResult =
+  | { status: "off" }
+  | { status: "redirecting" }
+  | { status: "ready"; liff: Liff; displayName: string; pictureUrl?: string }
+  | { status: "error"; reason: string };
+
+let initPromise: Promise<InitResult> | null = null;
+
+function initOnce(liffId: string): Promise<InitResult> {
+  if (initPromise) return initPromise;
+  initPromise = (async (): Promise<InitResult> => {
+    let liff: Liff;
+    try {
+      liff = (await import("@line/liff")).default;
+    } catch (e) {
+      return { status: "error", reason: `SDK_LOAD: ${String(e).slice(0, 120)}` };
+    }
+    try {
+      await Promise.race([
+        liff.init({ liffId, withLoginOnExternalBrowser: false }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error("timeout 10s")), 10_000)),
+      ]);
+    } catch (e) {
+      const err = e as { code?: string; message?: string };
+      return { status: "error", reason: `INIT: ${err.code ?? ""} ${err.message ?? String(e)}`.slice(0, 160) };
+    }
+    if (!liff.isLoggedIn()) {
+      if (liff.isInClient()) {
+        liff.login({ redirectUri: window.location.href });
+        return { status: "redirecting" };
+      }
+      return { status: "off" }; // opened in a normal browser
+    }
+    try {
+      const p = await liff.getProfile();
+      return { status: "ready", liff, displayName: p.displayName, pictureUrl: p.pictureUrl };
+    } catch (e) {
+      return { status: "error", reason: `PROFILE: ${String(e).slice(0, 120)}` };
+    }
+  })();
+  return initPromise;
+}
+
+let liffInstance: Liff | null = null;
+
+/**
+ * LINE LIFF integration. Any failure falls back to normal web booking and
+ * reports a reason (shown in small text so problems can be diagnosed).
+ * The browser never sends userId/displayName to our API — only the ID token,
+ * which the server verifies with LINE.
  */
 export function useLiff(liffIdFromSettings?: string) {
   const [state, setState] = useState<LiffState>({ status: "off" });
-  const liffRef = useRef<Liff | null>(null);
+  const liffId = process.env.NEXT_PUBLIC_LIFF_ID || DEFAULT_LIFF_ID || liffIdFromSettings;
 
   useEffect(() => {
-    const liffId = process.env.NEXT_PUBLIC_LIFF_ID || liffIdFromSettings || DEFAULT_LIFF_ID;
-    if (!liffId || !looksLikeLiffContext() || liffRef.current) return;
-    let cancelled = false;
+    if (!liffId || !looksLikeLiffContext()) return;
+    let alive = true;
     setState({ status: "loading" });
-
-    (async () => {
-      try {
-        const liff = (await import("@line/liff")).default;
-        await Promise.race([
-          liff.init({ liffId, withLoginOnExternalBrowser: false }),
-          new Promise((_, rej) => setTimeout(() => rej(new Error("LIFF init timeout")), 8000)),
-        ]);
-        if (cancelled) return;
-        liffRef.current = liff;
-
-        if (!liff.isLoggedIn()) {
-          if (liff.isInClient()) {
-            liff.login({ redirectUri: window.location.href });
-            return;
-          }
-          setState({ status: "off" });
-          return;
-        }
-        const profile = await liff.getProfile();
-        if (cancelled) return;
-        setState({ status: "ready", displayName: profile.displayName, pictureUrl: profile.pictureUrl });
-      } catch (e) {
-        console.warn("LIFF unavailable, falling back to web booking", e);
-        if (!cancelled) setState({ status: "error", message: "ไม่สามารถเชื่อมต่อ LINE ได้ สามารถจองโดยกรอกชื่อเองได้" });
+    initOnce(liffId).then((r) => {
+      if (!alive) return;
+      if (r.status === "ready") {
+        liffInstance = r.liff;
+        setState({ status: "ready", displayName: r.displayName, pictureUrl: r.pictureUrl });
+      } else if (r.status === "error") {
+        console.warn("LIFF failed", r.reason);
+        setState({ status: "error", reason: r.reason, message: "เชื่อมต่อ LINE ไม่สำเร็จ ยังจองได้โดยกรอกชื่อเอง" });
+      } else if (r.status === "off") {
+        setState({ status: "off" });
       }
-    })();
-
+      // "redirecting": keep loading state while LINE login takes over
+    });
     return () => {
-      cancelled = true;
+      alive = false;
     };
-  }, [liffIdFromSettings]);
+  }, [liffId]);
 
   /** Fresh ID token for the server to verify (null if not available) */
   const getIdToken = useCallback((): string | null => {
     try {
-      return liffRef.current?.getIDToken() ?? null;
+      return liffInstance?.getIDToken() ?? null;
     } catch {
       return null;
     }
   }, []);
 
   const relogin = useCallback(() => {
-    const liff = liffRef.current;
+    const liff = liffInstance;
     if (!liff) return;
     try {
       liff.logout();

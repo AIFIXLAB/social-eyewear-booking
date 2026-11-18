@@ -22,6 +22,10 @@ const PENDING_KEY = "se-booking-pending";
 const SUCCESS_KEY = "se-booking-success";
 const SLOT_GONE = ["SLOT_TAKEN", "SLOT_CLOSED", "HOLIDAY", "PAST_SLOT", "OUT_OF_RANGE"];
 
+function looksLikeLine(): boolean {
+  return typeof navigator !== "undefined" && /\bLine\//i.test(navigator.userAgent || "");
+}
+
 function uuid(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
   const b = crypto.getRandomValues(new Uint8Array(16));
@@ -258,7 +262,7 @@ export function BookingApp() {
           website: values.website,
         }),
       });
-      let data: { ok?: boolean; code?: string; detail?: string; lineNotified?: boolean; booking?: PublicBookingResult } = {};
+      let data: { ok?: boolean; code?: string; detail?: string; lineNotified?: boolean; lineInfo?: string; viaLine?: boolean; booking?: PublicBookingResult } = {};
       try {
         data = await res.json();
       } catch {
@@ -267,7 +271,9 @@ export function BookingApp() {
 
       if (res.ok && data.ok && data.booking) {
         ss.del(PENDING_KEY);
-        const done = { ...data.booking, lineNotified: !!data.lineNotified };
+        const lineInfo =
+          liff.status === "error" ? `LIFF ${liff.reason}` : liff.status === "ready" ? data.lineInfo : looksLikeLine() ? `LIFF ${liff.status}` : "";
+        const done = { ...data.booking, lineNotified: !!data.lineNotified, lineInfo };
         ss.set(SUCCESS_KEY, done);
         setResult(done);
         setStep("success");
@@ -487,6 +493,9 @@ export function BookingApp() {
                 ? "ส่งรายละเอียดการจองไปที่แชท LINE ของคุณแล้ว และจะแจ้งเตือนอีกครั้งก่อนวันนัด 1 วัน"
                 : "กรุณาบันทึกภาพหน้าจอนี้ไว้ และมาถึงร้านก่อนเวลานัดเล็กน้อย"}
             </p>
+            {!result.lineNotified && result.lineInfo && (
+              <p className="mt-2 font-mono text-[10px] text-neutral-400">LINE: {result.lineInfo}</p>
+            )}
           </div>
           <BookingSummary
             bookingCode={result.bookingCode}

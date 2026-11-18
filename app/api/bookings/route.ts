@@ -3,7 +3,7 @@ import { createSupabaseAnonClient } from "@/lib/supabase/service";
 import { BOOKING_SERVER_TOKEN } from "@/lib/booking/serverToken.server";
 import { validateBookingRequest } from "@/lib/validation/booking";
 import { verifyLineIdToken } from "@/lib/line/verify";
-import { pushLine } from "@/lib/line/push";
+import { pushLine, explainPushFailure } from "@/lib/line/push";
 import { getLineConfig } from "@/lib/line/config.server";
 import { bookingConfirmedMessage } from "@/lib/line/messages";
 import type { Booking, PublicBookingResult } from "@/types";
@@ -54,15 +54,19 @@ export async function POST(req: Request) {
   // LINE: trust only what LINE says about the token
   let lineUserId: string | null = null;
   let lineDisplayName: string | null = null;
+  let lineInfo = input.lineIdToken ? "" : "NO_ID_TOKEN";
   if (input.lineIdToken) {
     const r = await verifyLineIdToken(input.lineIdToken);
     if (r.ok) {
       lineUserId = r.user.userId;
       lineDisplayName = r.user.displayName;
+      lineInfo = "LINKED";
     } else if (r.reason === "INVALID") {
       return fail("LINE_TOKEN_INVALID", 401);
+    } else {
+      console.warn("LINE ID token not verified:", r.reason); // NOT_CONFIGURED / UNREACHABLE: continue as web booking
+      lineInfo = `VERIFY_${r.reason}`;
     }
-    else console.warn("LINE ID token not verified:", r.reason); // NOT_CONFIGURED / UNREACHABLE: continue as web booking
   }
 
   let supabase;
@@ -116,6 +120,7 @@ export async function POST(req: Request) {
       input.idempotencyKey,
     );
     lineNotified = r.ok;
+    if (!r.ok) lineInfo = explainPushFailure(r);
   }
-  return json({ ok: true, code: result.code, booking: publicResult, lineNotified }, status);
+  return json({ ok: true, code: result.code, booking: publicResult, lineNotified, lineInfo, viaLine: !!input.lineIdToken }, status);
 }
